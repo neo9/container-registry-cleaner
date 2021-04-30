@@ -1,0 +1,34 @@
+{
+    "dry-run": false,
+    "verbose": true,
+    "force": false,
+    "pkgFiles": ["package.json"],
+    "preReleaseId": null,
+    "increment": "patch",
+    "buildCommand": "oclif-dev pack",
+    "_changelogCommand": "npm run build:changelog",
+    "safeBump": false,
+    "requireCleanWorkingDir": false,
+    "git": {
+      "commit": true,
+      "commitMessage": "release: V ${version}",
+      "tag": true,
+      "tagName": "v${version}",
+      "tagAnnotation": "release: V ${version}",
+      "push": true
+    },
+    "hooks": {
+      "after:release": "npm run post:release"
+    },
+    "npm": {
+      "publish": false
+    },
+    "github": {
+      "release": false
+    },
+    "dist": {
+      "repo": false
+    },
+    "plugins": {}
+  }
+  
