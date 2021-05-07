@@ -30,7 +30,7 @@ class ContainerRegistryCleaner extends Command {
 
 	async run() {
 		const { flags } = this.parse(ContainerRegistryCleaner)
-		let registry = registryFactory.RegistryFactory(flags.registry)
+		let registry = await registryFactory.RegistryFactory(flags.registry)
 		let res: Image[] = []
 		if (flags.name) {
 			!flags.format && this.log('*** GETTING IMAGES ***')
@@ -41,7 +41,7 @@ class ContainerRegistryCleaner extends Command {
 			projects = projects.filter((project) => project.match(regex))
 			for (const index in projects) {
 				let tags = await registry.getImages(projects[index])
-				this.log(`${projects[index]} has ${tags.length + 1} images in total `)
+				!flags.format && this.log(`${projects[index]} has ${tags.length + 1} images in total `)
 				res = [...res, ...tags]
 			}
 		} else {
@@ -49,7 +49,7 @@ class ContainerRegistryCleaner extends Command {
 			const projects = await registry.getProjects()
 			for (const index in projects) {
 				let tags = await registry.getImages(projects[index])
-				this.log(`${projects[index]} has ${tags.length + 1} images in total `)
+				!flags.format && this.log(`${projects[index]} has ${tags.length + 1} images in total `)
 				res = [...res, ...tags]
 			}
 		}
@@ -93,7 +93,7 @@ class ContainerRegistryCleaner extends Command {
 				}
 			}
 		} else {
-			this.log(
+			!flags.format && this.log(
 				`${flags.name ?? 'the registry'} has ${res.length + 1} images in total in which ${
 					obsolete.length + doubleTag.length
 				} can be deleted/updated`,

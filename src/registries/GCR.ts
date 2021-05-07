@@ -2,9 +2,13 @@ import * as execa from 'execa'
 import moment from 'moment'
 import IRegistry from './IRegistry'
 import { Image, NativeImageDesc } from './Types'
-import config from '../../config.json'
 
 export default class GCR implements IRegistry {
+	private conf: any
+	constructor(config: any) {
+		this.conf = config
+	}
+
 	execGcloud = async (options: string): Promise<string> => {
 		try {
 			const gcloud = ['gcloud', options].join(' ')
@@ -28,7 +32,7 @@ export default class GCR implements IRegistry {
 	getProjects = async (): Promise<string[]> => {
 		const images = (
 			await this.execGcloud(
-				`container images list --repository=${config.hostname}/${config.project}`,
+				`container images list --repository=${this.conf.hostname}/${this.conf.project}`,
 			)
 		)
 			.split('\n')
@@ -40,7 +44,7 @@ export default class GCR implements IRegistry {
 	getImages = async (imageName: string): Promise<Image[]> => {
 		const tags: NativeImageDesc[] = JSON.parse(
 			await this.execGcloud(
-				`container images list-tags ${config.hostname}/${config.project}/${imageName} --sort-by ~timestamp --format=json`,
+				`container images list-tags ${this.conf.hostname}/${this.conf.project}/${imageName} --sort-by ~timestamp --format=json`,
 			),
 		)
 		return tags.map((tag) => this.convertNativeImageDescToImage(imageName, tag))
@@ -49,22 +53,22 @@ export default class GCR implements IRegistry {
 	cleanImage = async (toBeDeleted: Image[], toBeUpdated: Image[]) => {
 		toBeUpdated.forEach(async (image) => {
 			console.log(
-				`untag: gcloud container images untag ${config.hostname}/${config.project}/${
+				`untag: gcloud container images untag ${this.conf.hostname}/${this.conf.project}/${
 					image.image_name
 				}:${image.tags.filter((tag) => !tag.match(/v\d.\d.\d/))[0]} --quiet`,
 			)
 			await this.execGcloud(
-				`container images untag ${config.hostname}/${config.project}/${image.image_name}:${
+				`container images untag ${this.conf.hostname}/${this.conf.project}/${image.image_name}:${
 					image.tags.filter((tag) => !tag.match(/v\d.\d.\d/))[0]
 				} --quiet`,
 			)
 		})
 		toBeDeleted.forEach(async (image) => {
 			console.log(
-				`remove: gcloud container images delete ${config.hostname}/${config.project}/${image.image_name}@${image.digest} --force-delete-tags --quiet`,
+				`remove: gcloud container images delete ${this.conf.hostname}/${this.conf.project}/${image.image_name}@${image.digest} --force-delete-tags --quiet`,
 			)
 			await this.execGcloud(
-				`container images delete ${config.hostname}/${config.project}/${image.image_name}@${image.digest} --force-delete-tags --quiet`,
+				`container images delete ${this.conf.hostname}/${this.conf.project}/${image.image_name}@${image.digest} --force-delete-tags --quiet`,
 			)
 		})
 	}
