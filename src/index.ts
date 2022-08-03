@@ -9,7 +9,7 @@ class ContainerRegistryCleaner extends Command {
 
   static examples = [
     '$ container-registry-cleaner --registry=gcr --name=frontoffice --format=json --skip-confirm ',
-    `$ container-registry-cleaner --registry=gcr --name=frontoffice --list-obsolete  --valid-version-regex='v\\d.\\d.\\d[-,a-z,A-Z,0-9]*|latest'`,
+    `$ container-registry-cleaner --registry=gcr --name=frontoffice --list-obsolete  --valid-version-regex='^v(\\d+\\.)?(\\d+\.)?(\\*|\\d+)[-,a-z,A-Z,0-9]*|latest'`,
   ]
 
   static usage = `--registry={gcr|ecr} [--name=<value>] [--filter=<value>] [--valid-version-regex=<value>] [--format=json] ([--skip-confirm] | ([--list-only] | [--list-doubleTag] [--list-notag] [--list-obsolete]))`
@@ -36,7 +36,7 @@ class ContainerRegistryCleaner extends Command {
     'format': flags.string({ description: 'specify the format', options: ['json'] }),
     'valid-version-regex': flags.string({
       description: 'valid version regex',
-      default: 'v\\d.\\d.\\d',
+      default: '^v(\\d+\\.)?(\\d+.)?(\\*|\\d+)[-,a-z,A-Z,0-9]*$',
     }),
   }
 
@@ -44,9 +44,15 @@ class ContainerRegistryCleaner extends Command {
     const { flags } = this.parse(ContainerRegistryCleaner)
     let registry = await registryFactory.RegistryFactory(flags.registry, flags['valid-version-regex'])
     let res: Image[] = []
+    let obsolete: Image[] = []
+    let doubleTag: Image[] = []
+    let noTag: Image[] = []
     if (flags.name) {
       !flags.format && this.log('*** GETTING IMAGES ***')
       res = [...(await registry.getImages(flags.name))]
+      obsolete = registry.getObsoleteImages(res)
+      doubleTag = registry.getImagesWithDoubleTag(res)
+      noTag = registry.getImagesWithNoTag(res)
     } else if (flags.filter) {
       let projects = await registry.getProjects()
       const regex = new RegExp(`${flags.filter}`, 'g')
@@ -54,7 +60,13 @@ class ContainerRegistryCleaner extends Command {
       for (const index in projects) {
         let tags = await registry.getImages(projects[index])
         !flags.format && this.log(`${projects[index]} has ${tags.length + 1} images in total `)
-        res = [...res, ...tags]
+        const _obsolete = registry.getObsoleteImages(tags)
+        const _doubleTag = registry.getImagesWithDoubleTag(tags)
+        const _noTag = registry.getImagesWithNoTag(tags)
+        obsolete = [...obsolete, ..._obsolete]
+        doubleTag = [...doubleTag, ..._doubleTag]
+        noTag = [...noTag, ..._noTag]
+        res = [...res, ..._obsolete, ..._doubleTag, ..._noTag]
       }
     } else {
       !flags.format && this.log('*** GETTING PROJECTS ***')
@@ -62,12 +74,16 @@ class ContainerRegistryCleaner extends Command {
       for (const index in projects) {
         let tags = await registry.getImages(projects[index])
         !flags.format && this.log(`${projects[index]} has ${tags.length + 1} images in total `)
-        res = [...res, ...tags]
+        const _obsolete = registry.getObsoleteImages(tags)
+        const _doubleTag = registry.getImagesWithDoubleTag(tags)
+        const _noTag = registry.getImagesWithNoTag(tags)
+        obsolete = [...obsolete, ..._obsolete]
+        doubleTag = [...doubleTag, ..._doubleTag]
+        noTag = [...noTag, ..._noTag]
+        res = [...res, ..._obsolete, ..._doubleTag, ..._noTag]
       }
     }
-    const obsolete = registry.getObsoleteImages(res)
-    const doubleTag = registry.getImagesWithDoubleTag(res)
-    const noTag = registry.getImagesWithNoTag(res)
+
     if (flags['list-only']) {
       if (flags.format?.toLowerCase() === 'json') {
         console.log(JSON.stringify({ obsolete, doubleTag, noTag }))

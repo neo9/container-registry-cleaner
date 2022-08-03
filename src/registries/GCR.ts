@@ -70,16 +70,14 @@ export default class GCR implements IRegistry {
 
   getObsoleteImages = (res: Image[]): Image[] => {
     const current_date = moment()
-    const obs = res.filter(
-      (element) =>
-        element.tags.length === 1 &&
-        element.tags.some((e) => !e.match(this.regexes)) &&
-        moment.duration(current_date.diff(moment(element.datetime)), 'milliseconds').asDays() > 30,
-    )
-    const not_a_release = res.filter((element) => element.tags.length === 1 && element.tags.some((e) => !e.match(this.regexes)))
-    while (obs.length > 0 && not_a_release.length - obs.length < 15) {
-      obs.shift()
-    }
+    const obs = res
+      .filter(
+        (element) =>
+          element.tags.length === 1 &&
+          element.tags.some((e) => !e.match(this.regexes)) &&
+          moment.duration(current_date.diff(moment(element.datetime)), 'milliseconds').asDays() > 30,
+      )
+      .slice(10)
     if (obs.length == res.length) {
       obs.shift()
     }
@@ -87,7 +85,7 @@ export default class GCR implements IRegistry {
   }
 
   getImagesWithDoubleTag = (res: Image[]): Image[] => {
-    return res.filter((element) => element.tags.length > 1 && element.tags.filter((tag) => !tag.match(this.regexes)).length > 0)
+    return res.filter((element) => element.tags.length > 1 && element.tags.filter((tag) => !tag.match(this.regexes)).length > 0).slice(10)
   }
 
   getImagesWithNoTag = (res: Image[]): Image[] => {
